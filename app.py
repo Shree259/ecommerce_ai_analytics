@@ -16,9 +16,12 @@ uploaded_file = st.file_uploader("Upload Any CSV File", type=["csv"])
 if uploaded_file:
 
     try:
-        df = pd.read_csv(uploaded_file)
-
-        st.success("CSV Uploaded Successfully!")
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
+    except UnicodeDecodeError:
+        try:
+            df = pd.read_csv(uploaded_file, encoding='latin1')
+        except:
+            df = pd.read_csv(uploaded_file, encoding='ISO-8859-1')
 
         # =========================
         # DATA PREVIEW

@@ -1,8 +1,0 @@
-CustomerID,Age,Gender,PurchaseAmount,Orders,Country
-1001,22,Male,1200,5,India
-1002,31,Female,4500,12,USA
-1003,27,Male,2300,8,UK
-1004,40,Female,7800,20,Canada
-1005,29,Male,1500,6,India
-1006,35,Female,6200,15,Germany
-1007,26,Male,1800,7,Australia
