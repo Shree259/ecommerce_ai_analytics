@@ -6,115 +6,242 @@ import plotly.express as px
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
 
-st.set_page_config(page_title="AI E-Commerce Analytics", layout="wide")
+st.set_page_config(page_title="Universal AI Analytics Dashboard", layout="wide")
 
-st.title("🛒 AI-Powered E-Commerce Analytics Dashboard")
+st.title("📊 Universal AI-Powered Analytics Dashboard")
 
 # Upload CSV
-uploaded_file = st.file_uploader("Upload Customer CSV File", type=["csv"])
+uploaded_file = st.file_uploader("Upload Any CSV File", type=["csv"])
 
 if uploaded_file:
 
-    df = pd.read_csv(uploaded_file)
+    try:
+        df = pd.read_csv(uploaded_file)
 
-    required_columns = [
-        "CustomerID",
-        "Age",
-        "PurchaseAmount",
-        "Orders",
-        "Country"
-    ]
+        st.success("CSV Uploaded Successfully!")
 
-    missing_cols = [col for col in required_columns if col not in df.columns]
+        # =========================
+        # DATA PREVIEW
+        # =========================
 
-    if missing_cols:
-        st.error(f"Missing columns: {missing_cols}")
-        st.stop()
+        st.subheader("Dataset Preview")
+        st.dataframe(df.head())
 
-    st.subheader("Dataset Preview")
-    st.dataframe(df)
+        st.subheader("Dataset Information")
 
-    
-    # BASIC ANALYTICS
-    
+        col1, col2 = st.columns(2)
 
-    total_revenue = df["PurchaseAmount"].sum()
-    total_orders = df["Orders"].sum()
-    avg_purchase = df["PurchaseAmount"].mean()
+        col1.metric("Rows", df.shape[0])
+        col2.metric("Columns", df.shape[1])
 
-    col1, col2, col3 = st.columns(3)
+        # =========================
+        # COLUMN DETECTION
+        # =========================
 
-    col1.metric("Total Revenue", f"${total_revenue:,.2f}")
-    col2.metric("Total Orders", total_orders)
-    col3.metric("Average Purchase", f"${avg_purchase:,.2f}")
+        numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+        categorical_cols = df.select_dtypes(exclude=np.number).columns.tolist()
 
-    
-    # COUNTRY ANALYSIS
-    
+        st.sidebar.title("Dashboard Controls")
 
-    st.subheader("Country-wise Revenue")
+        # =========================
+        # KPI SECTION
+        # =========================
 
-    country_sales = df.groupby("Country")["PurchaseAmount"].sum().reset_index()
+        st.subheader("📈 KPI Analytics")
 
-    fig = px.bar(
-        country_sales,
-        x="Country",
-        y="PurchaseAmount",
-        title="Revenue by Country"
-    )
+        if numeric_cols:
 
-    st.plotly_chart(fig, use_container_width=True)
+            selected_kpi = st.selectbox(
+                "Select Numeric Column for KPI",
+                numeric_cols
+            )
 
+            total_value = df[selected_kpi].sum()
+            avg_value = df[selected_kpi].mean()
+            max_value = df[selected_kpi].max()
 
-    # CUSTOMER SEGMENTATION
+            c1, c2, c3 = st.columns(3)
 
-    st.subheader("AI Customer Segmentation")
+            c1.metric("Total", f"{total_value:,.2f}")
+            c2.metric("Average", f"{avg_value:,.2f}")
+            c3.metric("Maximum", f"{max_value:,.2f}")
 
-    X = df[["Age", "PurchaseAmount", "Orders"]]
+        # =========================
+        # BAR CHART
+        # =========================
 
-    kmeans = KMeans(n_clusters=3, random_state=42)
-    df["Cluster"] = kmeans.fit_predict(X)
+        st.subheader("📊 Interactive Bar Chart")
 
-    fig2 = px.scatter(
-        df,
-        x="PurchaseAmount",
-        y="Orders",
-        color=df["Cluster"].astype(str),
-        hover_data=["CustomerID"],
-        title="Customer Segmentation"
-    )
+        if categorical_cols and numeric_cols:
 
-    st.plotly_chart(fig2, use_container_width=True)
+            x_axis = st.selectbox("Select Category Column", categorical_cols)
+            y_axis = st.selectbox("Select Numeric Column", numeric_cols)
 
-    
-    # SALES PREDICTION
-    
+            grouped_data = df.groupby(x_axis)[y_axis].sum().reset_index()
 
-    st.subheader("AI Sales Prediction")
+            fig = px.bar(
+                grouped_data,
+                x=x_axis,
+                y=y_axis,
+                color=x_axis,
+                title=f"{y_axis} by {x_axis}"
+            )
 
-    X_pred = df[["Orders"]]
-    y_pred = df["PurchaseAmount"]
+            st.plotly_chart(fig, use_container_width=True)
 
-    model = LinearRegression()
-    model.fit(X_pred, y_pred)
+        # =========================
+        # PIE CHART
+        # =========================
 
-    future_orders = pd.DataFrame([[25]], columns=["Orders"])
+        st.subheader("🥧 Pie Chart")
 
-    predicted_sales = model.predict(future_orders)
+        if categorical_cols:
 
-    st.success(f"Predicted Sales for 25 Orders: ${predicted_sales[0]:.2f}")
+            pie_col = st.selectbox(
+                "Select Column for Pie Chart",
+                categorical_cols
+            )
 
+            pie_data = df[pie_col].value_counts().reset_index()
+            pie_data.columns = [pie_col, "Count"]
 
-    # DOWNLOAD CSV
+            fig2 = px.pie(
+                pie_data,
+                names=pie_col,
+                values="Count",
+                title=f"Distribution of {pie_col}"
+            )
 
-    csv = df.to_csv(index=False)
+            st.plotly_chart(fig2, use_container_width=True)
 
-    st.download_button(
-        label="Download Processed Data",
-        data=csv,
-        file_name="processed_data.csv",
-        mime="text/csv"
-    )
+        # =========================
+        # SCATTER PLOT
+        # =========================
+
+        st.subheader("🔍 Scatter Plot")
+
+        if len(numeric_cols) >= 2:
+
+            x_scatter = st.selectbox(
+                "Select X-axis",
+                numeric_cols,
+                key="scatter_x"
+            )
+
+            y_scatter = st.selectbox(
+                "Select Y-axis",
+                numeric_cols,
+                key="scatter_y"
+            )
+
+            fig3 = px.scatter(
+                df,
+                x=x_scatter,
+                y=y_scatter,
+                color=y_scatter,
+                title=f"{y_scatter} vs {x_scatter}"
+            )
+
+            st.plotly_chart(fig3, use_container_width=True)
+
+        # =========================
+        # AI CUSTOMER SEGMENTATION
+        # =========================
+
+        st.subheader("🤖 AI Clustering")
+
+        if len(numeric_cols) >= 2:
+
+            cluster_features = st.multiselect(
+                "Select Features for Clustering",
+                numeric_cols,
+                default=numeric_cols[:2]
+            )
+
+            if len(cluster_features) >= 2:
+
+                X = df[cluster_features].dropna()
+
+                kmeans = KMeans(n_clusters=3, random_state=42)
+
+                clusters = kmeans.fit_predict(X)
+
+                cluster_df = X.copy()
+                cluster_df["Cluster"] = clusters
+
+                fig4 = px.scatter(
+                    cluster_df,
+                    x=cluster_features[0],
+                    y=cluster_features[1],
+                    color=cluster_df["Cluster"].astype(str),
+                    title="AI-Based Clustering"
+                )
+
+                st.plotly_chart(fig4, use_container_width=True)
+
+        # =========================
+        # AI PREDICTION
+        # =========================
+
+        st.subheader("📉 AI Prediction")
+
+        if len(numeric_cols) >= 2:
+
+            x_pred = st.selectbox(
+                "Select Feature Column",
+                numeric_cols,
+                key="pred_x"
+            )
+
+            y_pred = st.selectbox(
+                "Select Target Column",
+                numeric_cols,
+                key="pred_y"
+            )
+
+            X = df[[x_pred]].dropna()
+            y = df[y_pred].dropna()
+
+            if len(X) == len(y):
+
+                model = LinearRegression()
+                model.fit(X, y)
+
+                future_value = st.number_input(
+                    f"Enter Future {x_pred}",
+                    value=10.0
+                )
+
+                future_df = pd.DataFrame(
+                    [[future_value]],
+                    columns=[x_pred]
+                )
+
+                prediction = model.predict(future_df)
+
+                st.success(
+                    f"Predicted {y_pred}: {prediction[0]:,.2f}"
+                )
+
+        # =========================
+        # DOWNLOAD CLEANED DATA
+        # =========================
+
+        st.subheader("⬇ Download Processed Dataset")
+
+        csv = df.to_csv(index=False)
+
+        st.download_button(
+            label="Download CSV",
+            data=csv,
+            file_name="processed_data.csv",
+            mime="text/csv"
+        )
+
+    except Exception as e:
+
+        st.error(f"Error Processing File: {e}")
 
 else:
-    st.info("Please upload a CSV file.")
+
+    st.info("Please upload a CSV file to begin.")
